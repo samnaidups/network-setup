@@ -8,7 +8,7 @@
 - **Docker-Compose:** 1.8 or above.
 
  ________________________________________________________
- **Note :** If you dont want to make any changes in the network setup and want to try using SDK, then you can just follow step 2 and 3 to install the required hyperledger images and tools and execute the docker-compose-e2e-template file which will start 4 peers + 2 CA (2 peers and 1 certificate authority for each org), and 1 ordering service node. For SDk go to step 11
+ **Note :** If you dont want to make any changes in the network setup and want to try using SDK, then you can just follow step 2 and 3 to install the required hyperledger images and tools and execute the docker-compose-e2e-template file which will start 4 peers + 2 CA (2 peers and 1 certificate authority for each org), and 1 ordering service node. For SDk go below
  
  ### Steps For Setting Up Hyperledger V1.0 Network
  
