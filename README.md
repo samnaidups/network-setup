@@ -47,7 +47,7 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
    
    
 **6.** Once the genesis block is generated, Its time to update the docker compose file.<br/>
-- ###Configuing Certificate Authority
+- ### Configuring Certificate Authority
    - Open docker-compose-e2e-template.yaml.
    - In the services section, go to ca0 section
    - This section starts the certificate authority for organization(e.g Org1)
@@ -57,7 +57,7 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
    - The path for the above flags should be from the container perspective, so you might have to mount the volume of your root ca  directory to the container
    - **Note** If you setup has more than one CA, then make this changes for each CA services
    
-- ###Configuing Orderer Service
+- ### Configuring Orderer Service
    - Open base/docker-compose-base.yaml file.
    - In the services section, go to  orderer.example.com section
    - This section starts the ordering service
@@ -71,7 +71,7 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
    - For ORDERER_GENERAL_TLS_ROOTCAS flag, give the path of the tls root ca cert.
    - ALl the certificates will be present in the /crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls directory.
 
-- ###Configuing Peer Service
+- ### Configuring Peer Service
    - Open base/docker-compose-base.yaml file.
    - In the services section, go to  peer0.org1.example.com section
    - Mount the volume containing the certificates (tls & msp) for the peer service node (e.g /fabric-test/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp)
