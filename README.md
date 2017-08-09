@@ -119,11 +119,11 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
 **5** For more SDK fucntions go to https://fabric-sdk-node.github.io/
 
 ### Sending requests via command line
-**1** Run the following command to enter into container (Consider Admin of org1 executes the request from this terminal)
+**1** Run the following command to enter into cli1 container (Consider Admin of org1 executes the request from this terminal)
 ```sh
     docker exec -it cli1 bash
 ```
-Open one more putty terminal and enter into the cli2 container (Consider Admin of org2 executes the request from this terminal)
+Open one more terminal and enter into the cli2 container (Consider Admin of org2 executes the request from this terminal)
 ```sh
     docker exec -it cli2 bash
 ```
