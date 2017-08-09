@@ -99,19 +99,24 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
  This command will read configtx.yaml from current directory and will generate the channel.tx from the profile specified (TwoOrgsChannel). The channel.tx will be created at the specied path(i.e ./channel-artifacts/channel.tx). The channel.tx will be in protobuf format (type = Envelope), to convert into JSON format you can use the configtxlator tool. Channel.tx files contains the orgs that are authorized to join the channel.By defaults two orgs are mentioned in the profile. If you want to add more orgs to the channel than change TwoOrgsChannel profile<br/>
  
   
- **9.** Once the channel.tx file is created ,it's time to send channel create request to the orderer. We will be using SDK to initiiate all request.<br/>
+ **9.** Once the channel.tx file is created ,it's time to send channel create request to the orderer. We can either choose SDK or command line tool  to initiiate all request.<br/>
  
- **10.** Go to the Server folder and open server.js , All the required node modules are already present in the directory. If some additional packages are required install them.
+ ### Sending requests via SDK
+
+ **1** Go to the Server folder and open server.js , All the required node modules are already present in the directory. If some additional packages are required install them.
  
- **11.** First step is to create the channel using the channel.tx which we have create, server.js file contains createChannel() method which creates the channel.
+ **2** First step is to create the channel using the channel.tx which we have create, server.js file contains createChannel() method which creates the channel.
  The create channel method uses channel name that was specifed while creating channel.tx file, the orderer url and its tlsca certificate, Kindly go through the function and make necessary changes and once done run the server.js using command 
  ```sh
         node server.js
  ```
  Check the console for the status of the channel creation request
  
- **12.** Next step is to make join channel request to the peers of the organization. This command has to be run by admin of each org in the channel to join their respective peer.So if the channel includes two orgs , two times the joinchannel has to be called by admin of each org. Kindly go through the function and make necessary changes and once done run the server.js. Check the console for the status of the channel creation request
+ **2** Next step is to make join channel request to the peers of the organization. This command has to be run by admin of each org in the channel to join their respective peer.So if the channel includes two orgs , two times the joinchannel has to be called by admin of each org. Kindly go through the function and make necessary changes and once done run the server.js. Check the console for the status of the channel creation request
  
-**13.** Once the peers of required orgs have joined the channel, you can run commands such as getallChannels , getChannelInfo to get the channel information. Dont forget to make the necessary changes to the functions in the server.js file
+**4** Once the peers of required orgs have joined the channel, you can run commands such as getallChannels , getChannelInfo to get the channel information. Dont forget to make the necessary changes to the functions in the server.js file
 
-**14.** For more SDK fucntions go to https://fabric-sdk-node.github.io/
+**5** For more SDK fucntions go to https://fabric-sdk-node.github.io/
+
+### Sending requests via command line
+
