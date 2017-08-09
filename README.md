@@ -128,35 +128,30 @@ Open one more terminal and enter into the cli2 container (Consider Admin of org2
     docker exec -it cli2 bash
 ```
 **2** Now, Lets consider admin of org1 sends the channel creation request to the orderer<br/>
-     Run the following command in cli1 terminal
-     
-     ```sh
-        export CHANNEL_NAME=firstchannel
-        peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls true --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
-     ```
-     
+     Run the following command in cli1 terminal  
+```sh
+    export CHANNEL_NAME=firstchannel
+    peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ./channel-artifacts/channel.tx --tls true --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+```
 **Note:** --cafile is the tlsca certificate of the orderer organization <br/>
 This command returns a genesis block (e.g firstchannel.block)- which we will use to join the channel. The block will be stored in the current directory. It contains the configuration information specified in channel.tx.<br/>
 Once the channel genesis block is created proceed further.<br/>
 
 **3** Execute the command that will request the org1 peer to join the channel
-     
-     ```sh
-       peer channel join -b <channel-ID.block>
-     ```
-     
+```sh
+  peer channel join -b <channel-ID.block>
+```   
 **4** Now lets join the peers of org2, Go to the cli2 terminal and run the following command
  
  ```sh
        peer channel fetch config firstchannel.block -o orderer.example.com:7050 -c firstchannel --tls true --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
-  ```
-  
+```
   This command will get the genesis block of the channel from the orderer and store in the current directory. This block will be requiered to create a join channel request. Once the block is stored successfully we will request org2 peers to join the channel (firstchannel)<br/>
   
 **5** Execute the command from cli2 terminal that will request the org2 peer to join the channel
-    
-    ```sh
-       peer channel join -b <channel-ID.block>
-     ```
+  
+```sh
+   peer channel join -b <channel-ID.block>
+```
      
 **6** Once both the peer has joined the channel you can send install, deploy, invoke and query request to the peer. For more information about this requests you can refer [here](https://hyperledger-fabric.readthedocs.io/en/latest/build_network.html#install-instantiate-chaincode)
