@@ -144,7 +144,7 @@ Once the channel genesis block is created proceed further.<br/>
 **4** Now lets join the peers of org2, Go to the cli2 terminal and run the following command
  
  ```sh
-       peer channel fetch config firstchannel.block -o orderer.example.com:7050 -c firstchannel --tls true --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+       peer channel fetch config firstchannel.block -o orderer.example.com:7050 -c firstchannel --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --tls true
 ```
   This command will get the genesis block of the channel from the orderer and store in the current directory. This block will be requiered to create a join channel request. Once the block is stored successfully we will request org2 peers to join the channel (firstchannel)<br/>
   
