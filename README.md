@@ -82,7 +82,7 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
 
 **7.** After the neccessary changes have been made to the docker compose file, run the docker compose files using the command <br/>
    ```sh 
-      docker-compose -f docker-compose-e2e-template up -d
+      docker-compose -f docker-compose-e2e-template.yaml up -d
   ```
  This command will execute the docker compose file and start listed peers,ca and ordering service.<br/>
  Run  the following command  to list all the docker containers and make sure all the containers are up and running. Proceed only if all the containers are up<br/>
@@ -90,7 +90,7 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
     docker ps -a 
  ```
  
- **8.** Next Step is to create the channel artifacts (i.e channel.tx), This file contains the config object which is signed by the admin who sends the channel creation request to the ordering service <br/>
+ **8.** Next Step is to create the channel artifacts (i.e channel.tx), This file contains the config object which contains the information about the organizations who can join the channel, and this config object has to sign by the admin who sends the channel creation request to the ordering service. Note that while giving the chaincode id for $CHANNEL_NAME dont add any special character or Upper case letter <br/>
  
  Run the below command to generate the channel.tx file<br/>
  ```sh 
