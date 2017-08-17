@@ -103,12 +103,12 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
  
  ### Sending requests via SDK
 
- **1** Go to the Server folder and open server.js , All the required node modules are already present in the directory. If some additional packages are required install them.
+ **1** Go to the Server folder and open application.js , All the required node modules are already present in the directory. If some additional packages are required install them.
  
  **2** First step is to create the channel using the channel.tx which we have create, server.js file contains createChannel() method which creates the channel.
  The create channel method uses channel name that was specifed while creating channel.tx file, the orderer url and its tlsca certificate, Kindly go through the function and make necessary changes and once done run the server.js using command 
  ```sh
-        node server.js
+        node application.js
  ```
  Check the console for the status of the channel creation request
  
@@ -116,7 +116,7 @@ For more information on configtx.yaml go to [configtxgen](https://hyperledger-fa
  
 **4** Once the peers of required orgs have joined the channel, you can run commands such as getallChannels , getChannelInfo to get the channel information. Dont forget to make the necessary changes to the functions in the server.js file
 
-**5** For more SDK fucntions go to https://fabric-sdk-node.github.io/
+**5** For more SDK functions go to https://fabric-sdk-node.github.io/
 
 ### Sending requests via command line
 **1** Run the following command to enter into cli1 container (Consider Admin of org1 request from this terminal)
