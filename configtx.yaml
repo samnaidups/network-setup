@@ -39,7 +39,7 @@ Profiles:
             <<: *ApplicationDefaults
             Organizations:
                 - *Org1
-                - *Org2
+                - *Org3
 
 ################################################################################
 #
