@@ -50,15 +50,15 @@ var orderer = client.newOrderer(
 //instantiateChaincode(channel_name,org1peersurl,org2peersurl,'org1',org1mspid,"github.com/chaincode","mychaincodeid","v0");
 
 //lists all the instantiated chaincodes on the peer(s)
-//getInstantiatedChaincodes(apeers,org1,'org1')
+//getInstantiatedChaincodes(org1peersurl,org1mspid,'org1')
 
 
 //invokes a function specified in the instantiated chaincode
-//invokechaincode(channel_name,org1mspid,'org1',org1peersurl,org2peersurl,"mychaincodeid","a","b","30")
+//invokechaincode(channel_name,org1mspid,'org1',org1peersurl,org2peersurl,"mychaincodeid","acc1","acc2","30")
 
 
 //makes a query call to a function specified in the instantiated chaincode
-//querychaincode(channel_name,org1mspid,'org1',org1peersurl,org2peersurl,"mychaincodeid","b")
+//querychaincode(channel_name,org1mspid,'org1',org1peersurl,org2peersurl,"mychaincodeid","acc1")
 
 
 //some extra function to get the channel information
@@ -450,7 +450,7 @@ function getInstantiatedChaincodes(peers,orgName,orgPath){
 
 function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincodePath,chaincodeID,chaincodeVersion,res){
 
-	Client.setConfigSetting('request-timeout', 100000);
+	Client.setConfigSetting('request-timeout', 10000);
 	var type = 'instantiate';
 	var targets = [];
 	var channel = client.newChannel(channel_name);
@@ -1175,7 +1175,7 @@ function buildChaincodeProposal(client, chaincode_path, version, upgrade, transi
 		chaincodeId: chaincodeID,
 		chaincodeVersion: version,
 		fcn: 'init',
-		args: ["a","100","b","200"],
+		args: ["acc1","100","acc2","200"],
 		txId: tx_id,
 		// use this to demonstrate the following policy:
 		// 'if signed by org1 admin, then that's the only signature required,
