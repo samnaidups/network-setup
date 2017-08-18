@@ -1,7 +1,11 @@
+//requires fabric-client module for interacting with peers and ordering service node
 var Client = require('fabric-client');
+
+//requires tor read file such as channel.tx for signing
 var fs = require('fs');
 var path = require('path');
 
+//globally define channelid and MSP id of each org
 var channel_name = 'firstchannel';
 var org1mspid = "Org1MSP";
 var org2mspid = "Org2MSP";
@@ -10,9 +14,14 @@ var genesis_block = null;
 var config =null;
 var signatures = [];
 
+//peers endpoints of org1 and org2
+//event url is used for registering for events on the peer, 
+//during the committing phase peer will generate an event informing whether the transaction successfully passed the endorsement policy or not
+
 var org1peersurl = [{url:"grpcs://localhost:7051",eventurl:"grpcs://localhost:7053"},{url:"grpcs://localhost:8051",eventurl:"grpcs://localhost:8053"}];
 var org2peersurl = [{url:"grpcs://localhost:9051",eventurl:"grpcs://localhost:9053"},{url:"grpcs://localhost:10051",eventurl:"grpcs://localhost:10053"}];
 
+//creates the client object 
 var client = new Client();
 
 //get the tls certificate of the orderer organization for tls communication
@@ -20,6 +29,7 @@ var caRootsPath = "../crypto-config/ordererOrganizations/example.com/orderers/or
 let data = fs.readFileSync(caRootsPath);
 let caroots = Buffer.from(data).toString();
 
+//creates the orderer object and initialize it with the endpoint and the tls certificate of ordering service node
 var orderer = client.newOrderer(
 		"grpcs://localhost:7050",
 		{
@@ -28,43 +38,61 @@ var orderer = client.newOrderer(
 		}
 );
 
-//Admin operations
+//***********Admin Functions*********
+//below lists some functions that can be called only by organizations admin
 
-//list all the channel that the peer is part of
-//getallChannels(org1peersurl,org1mspid,'org1')
-
-
-//creates a channel
+//creates a channel between organization mentioned in the channel.tx file, 
+//admin of any org participating in the channel can send the request to the orderer
+//on receiving the request orderer will prepare the genesis block for this channel
 //createChannel(channel_name,org1mspid,'org1');
 
-//request for peers to join the specified channel
+//sends a request to peers to join the specified channel
+//each orgs admin has to initiate this request on their respective peers
 //joinChannel(org1mspid,'org1',org1peersurl)
 //joinChannel(org2mspid,'org2',org2peersurl)
 
 
-//install the chaincode at specified path on the specified peer node
+//install the chaincode on the specified peer node
+//The SDK will read the GOPATH environment from the host machine
+//The full path from where the SDK will read the chaincode will be $GOPATH + src + specified path(e.g chaincode)
+//install will just install the source code and dependencies on the peers
+//Not necessary that install has to be called after create and join channel request, admin can install chaincode independent of any operation.
 //installchaincode(org1peersurl,'org1',org1mspid,"chaincode","mychaincodeid","v0");
 //installchaincode(org2peersurl,'org2',org2mspid,"chaincode","mychaincodeid","v0");
 
-//deploys a chaincode on the peer, on recieving this request peer builds and starts a container for chaincode, on successfull users can invoke or query the chaincode 
+
+//After the chaincode is been installed on the peer, Admin can instantiate the chaincode 
+//On receiving this request peer builds and starts a container for chaincode, on success users can invoke or query the chaincode
+//Admin of one org can now also send the request to the peers of other org in the channel
+//Reason: peer has the genesis block for the channel which contains enough information to validate admin that are authorize to perform operations for the channel
 //instantiateChaincode(channel_name,org1peersurl,org2peersurl,'org1',org1mspid,"chaincode","mychaincodeid","v0");
 
-//lists all the instantiated chaincodes on the peer(s)
-//getInstantiatedChaincodes(org1peersurl,org1mspid,'org1')
-
+//***********End User Functions(Commonly Used)*********
 
 //invokes a function specified in the instantiated chaincode
 //invokechaincode(channel_name,org1mspid,'org1',org1peersurl,org2peersurl,"mychaincodeid","acc1","acc2","30")
-
 
 //makes a query call to a function specified in the instantiated chaincode
 //querychaincode(channel_name,org1mspid,'org1',org1peersurl,org2peersurl,"mychaincodeid","acc1")
 
 
 //some extra function to get the channel information
+
+//gets the channel information
 //getChannelInfo();
+
+//gets the genesis block for the channel
 //getGenesisBlock(org1,'org1')
+
+//Request the orderer for the current (latest) configuration block for the channel. 
+//Similar to getGenesisBlock(), except that instead of getting block number 0 it gets the latest block that contains the channel configuration.
 //getChannelConfig()
+
+//list all the channel that the peer is part of
+//getallChannels(org1peersurl,org1mspid,'org1')
+
+//lists all the instantiated chaincodes on the peer(s)
+//getInstantiatedChaincodes(org1peersurl,org1mspid,'org1')
 
 
 
@@ -108,34 +136,28 @@ function querychaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeID,a
 
 	
 	Client.newDefaultKeyValueStore({
-		
 		path: "/hfc-test-kvs/"+orgName
-		
 	}).then((store) => {
-	
+
 		client.setStateStore(store);
-		return getSubmitter(client,true,orgPath,orgName);
+		return getAdmin(client,orgPath,orgName);
 		
 	}).then((admin) => {
-	
 		return channel.initialize();
-		
 	}, (err) => {
-
 		console.log('Failed to enroll user admin ',err);
-	
-
 	}).then(() => {
 	
 			tx_id = client.newTransactionID();
 
-			// send query
+			// build query request
 			var request = {
 				chaincodeId: chaincodeID,
 				txId: tx_id,
 				fcn: 'query',
 				args: [account]
 			};
+			//send query request to peers
 			return channel.queryByChaincode(request, targets);
 	
 	}, (err) => {
@@ -145,10 +167,9 @@ function querychaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeID,a
 
 	}).then((response_payloads) =>{
 	
+		//gets response from each peer and check for status
 		if (response_payloads) {
-			
 			console.log(response_payloads[0].toString('utf8'));
-		
 		} else {
 			console.log('response_payloads is null');
 		}
@@ -192,46 +213,38 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 						);
 		channel.addPeer(peer_obj);
 	}
-
-	
 	Client.newDefaultKeyValueStore({
-		
 		path: "/hfc-test-kvs/"+orgName
-		
 	}).then((store) => {
 	
 		client.setStateStore(store);
-		return getSubmitter(client,true,orgPath,orgName);
+		return getAdmin(client,orgPath,orgName);
 		
 	}).then((admin) => {
 	
 		return channel.initialize();
 		
 	}, (err) => {
-
 		console.log('Failed to enroll user admin ',err);
-	
-
 	}).then(() => {
 	
-			tx_id = client.newTransactionID();
+		tx_id = client.newTransactionID();
 		
-			// send proposal to endorser
-			var request = {
-				chaincodeId : chaincodeId,
-				fcn: 'move',
-				args: [from,to,amount],
-				txId: tx_id,
-			};
-			return channel.sendTransactionProposal(request);
+		//build invoke request
+		var request = {
+			chaincodeId : chaincodeId,
+			fcn: 'move',
+			args: [from,to,amount],
+			txId: tx_id,
+		};
+		// send proposal to endorser
+		return channel.sendTransactionProposal(request);
 	
 	}, (err) => {
-
 		console.log('Failed to initialize the channel: ',err);
-	
-
 	}).then((results) =>{
 	
+		//get the endorsement response from the peers and check for response status
 		pass_results = results;
 		console.log("Results: ",results)
 		var proposalResponses = pass_results[0];
@@ -254,6 +267,8 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 		}
 		if (all_good) {
 			
+			//checks if the proposal has same read/write sets.
+			//This will validate that the endorsing peers all agree on the result of the chaincode execution.
 			all_good = channel.compareProposalResponseResults(proposalResponses);
 			if(all_good){
 				console.log(' All proposals have a matching read/writes sets');
@@ -266,11 +281,13 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 			// check to see if all the results match
 			console.log('Successfully sent Proposal and received ProposalResponse');
 			console.log('Successfully sent Proposal and received ProposalResponse: ', proposalResponses[0].response.status, proposalResponses[0].response.message, proposalResponses[0].response.payload, proposalResponses[0].endorsement.signature);
+
 			var request = {
 				proposalResponses: proposalResponses,
 				proposal: proposal
 			};
-			var deployId = tx_id.getTransactionID();
+			var invokeId = tx_id.getTransactionID();
+			
 			eh = client.newEventHub();
 			let data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer0."+orgPath+".example.com/tls/ca.crt");
 			eh.setPeerAddr(apeers[0].eventurl, {
@@ -285,10 +302,10 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 						reject();
 					}, 30000);
 
-					eh.registerTxEvent(deployId, (tx, code) => {
+					eh.registerTxEvent(invokeId, (tx, code) => {
 						console.log('The chaincode invoke transaction has been committed on peer ',eh._ep._endpoint.addr);
 						clearTimeout(handle);
-						eh.unregisterTxEvent(deployId);
+						eh.unregisterTxEvent(invokeId);
 						eh.disconnect();
 						if (code !== 'VALID') {
 							console.log('The chaincode invoke transaction was invalid, code = ',code);
@@ -301,6 +318,8 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 						}
 					});
 			});
+			
+			//sends the endorsement response to the orderer for ordering
 			var sendPromise = channel.sendTransaction(request);
 			
 			return Promise.all([sendPromise].concat([txPromise])).then((results) => {
@@ -315,6 +334,7 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 	
 	}).then((response) => {
 
+		//gets the final response from the orderer and check the response status
 		if (response.status === 'SUCCESS') {
 			console.log('Successfully sent transaction to the orderer.');
 		
@@ -338,7 +358,6 @@ function getallChannels(peers,orgmspid,orgPath){
 	
 		let peer = peers[i];
 		data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
-	
 		let peer_obj = client.newPeer(
 							peer.url,
 							{
@@ -346,14 +365,10 @@ function getallChannels(peers,orgmspid,orgPath){
 								'ssl-target-name-override': "peer"+i+"."+orgPath+".example.com"
 							}
 						);
-		
 		targets.push(peer_obj);
 	}
-
 	Client.newDefaultKeyValueStore({
-		
-		path: "/hfc-test-kvs/"+orgmspid
-		
+		path: "/hfc-test-kvs/"+orgmspid	
 	}).then((store) => {
 	
 		console.log("\nRegistering orderer admin")
@@ -367,11 +382,8 @@ function getallChannels(peers,orgmspid,orgPath){
 		return client.queryChannels(targets[0])
 		
 	}).then((ChannelQueryResponse) =>{
-	
 		console.log('\nChannel info: ',ChannelQueryResponse);
-	
 	});
-	
 }
 
 function getInstantiatedChaincodes(peers,orgName,orgPath){
@@ -385,7 +397,6 @@ function getInstantiatedChaincodes(peers,orgName,orgPath){
 	
 		let peer = peers[i];
 		data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
-	
 		let peer_obj = client.newPeer(
 							peer.url,
 							{
@@ -393,11 +404,8 @@ function getInstantiatedChaincodes(peers,orgName,orgPath){
 								'ssl-target-name-override': "peer"+i+"."+orgPath+".example.com"
 							}
 						);
-		
 		targets.push(peer_obj);
-		//channel.addPeer(peer_obj);
 	}
-	//channel.addPeer(peer_obj);
 	Client.newDefaultKeyValueStore({
 		
 		path: "/hfc-test-kvs/"+orgName
@@ -407,14 +415,12 @@ function getInstantiatedChaincodes(peers,orgName,orgPath){
 		console.log("\nRegistering orderer admin")
 		client.setStateStore(store);
 		
-		return getSubmitter(client, true, orgPath,orgName)
+		return getAdmin(client,orgPath,orgName)
 		
 	}).then((admin) => {
 	
 		console.log('\nSuccessfully enrolled org1 \'admin\'');
-
 		console.log('\Getting the channel info block from orderer');
-		
 		return channel.queryInstantiatedChaincodes(targets[0])
 		
 	}).then((ChaincodeQueryResponse) =>{
@@ -425,15 +431,18 @@ function getInstantiatedChaincodes(peers,orgName,orgPath){
 	
 }
 
-
 function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincodePath,chaincodeID,chaincodeVersion){
 
+	//sets the timeout for the request, make sure you set enough time out because on the request peer build a container for chaincode 
+	//and it make take some more time to send the response
 	Client.setConfigSetting('request-timeout', 10000);
+	
 	var type = 'instantiate';
 	var targets = [];
 	var channel = client.newChannel(channel_name);
 	channel.addOrderer(orderer)
 	
+	//return peers object of org1 
 	for (var i=0;i<peers.length;i++) {
 	
 		let peer = peers[i];
@@ -451,6 +460,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 		channel.addPeer(peer_obj);
 	}
 	
+	//return peers object of org1 
 	for (var i=0;i<bpeers.length;i++) {
 	
 		let peer = bpeers[i];
@@ -469,18 +479,18 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 	}
 	
 	Client.newDefaultKeyValueStore({
-		
 		path: "/hfc-test-kvs/"+orgName
-		
 	}).then((store) => {
 	
 		console.log("\nRegistering "+orgPath+" admin")
 		client.setStateStore(store);
-		return getSubmitter(client,true,orgPath,orgName);
+		return getAdmin(client,orgPath,orgName);
 		
 	}).then((admin) => {
 	
 		console.log('\nSuccessfully enrolled '+orgPath+' \'admin\'');
+		
+		//Retrieves the configuration for the channel from the orderer
 		return channel.initialize();
 		
 	}, (err) => {
@@ -492,9 +502,13 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 	}).then(() => {
 	
 			console.log('\nBuilding instantiate proposal');
-			let request = buildChaincodeProposal(client, chaincodePath, chaincodeVersion, false, "",chaincodeID);
+			//build request for instantiation
+			let request = buildChaincodeProposal(client, chaincodePath, chaincodeVersion,chaincodeID);
+			
 			tx_id = request.txId;
 			console.log('\nSending instantiate request to peers');
+			
+			//send transaction to the peers for endorsement
 			return channel.sendInstantiateProposal(request);
 	
 	}, (err) => {
@@ -504,6 +518,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 		
 	}).then((results) => {
 		
+		//gets the endorsement response from the peer and check if enough peers have endorsed the transaction
 		var proposalResponses = results[0];
 		var proposal = results[1];
 		var all_good = true;
@@ -520,57 +535,59 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 		}
 		if (all_good) {
 		
-				console.log('Successfully sent Proposal and received ProposalResponse:',
-						proposalResponses[0].response.status, proposalResponses[0].response.message,
-						proposalResponses[0].response.payload, proposalResponses[0].endorsement.signature);
-						
-				var request = {
-					proposalResponses: proposalResponses,
-					proposal: proposal
-				};
-				var deployId = tx_id.getTransactionID();
+			console.log('Successfully sent Proposal and received ProposalResponse:',
+					proposalResponses[0].response.status, proposalResponses[0].response.message,
+					proposalResponses[0].response.payload, proposalResponses[0].endorsement.signature);
 				
-				eh = client.newEventHub();
-				let data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer0."+orgPath+".example.com/tls/ca.crt");
-				eh.setPeerAddr(peers[0].eventurl, {
-					pem: Buffer.from(data).toString(),
-					'ssl-target-name-override': 'peer0.'+orgPath+'.example.com'
-				});
-				eh.connect();
-				
-				let txPromise = new Promise((resolve, reject) => {
-					let handle = setTimeout(() => {
-						eh.disconnect();
-						reject();
-					}, 30000);
+			//building the request to send the obtained proposal from peers to the orderer
+			var request = {
+				proposalResponses: proposalResponses,
+				proposal: proposal
+			};
+			var deployId = tx_id.getTransactionID();
+			
+			//registers for the event to the peer0 for confirming whether the transaction is successfully committed or not
+			eh = client.newEventHub();
+			let data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer0."+orgPath+".example.com/tls/ca.crt");
+			eh.setPeerAddr(peers[0].eventurl, {
+				pem: Buffer.from(data).toString(),
+				'ssl-target-name-override': 'peer0.'+orgPath+'.example.com'
+			});
+			eh.connect();
+			
+			let txPromise = new Promise((resolve, reject) => {
+				let handle = setTimeout(() => {
+					eh.disconnect();
+					reject();
+				}, 30000);
 
-					eh.registerTxEvent(deployId, (tx, code) => {
-						console.log('The chaincode instantiate transaction has been committed on peer ',eh._ep._endpoint.addr);
-						clearTimeout(handle);
-						eh.unregisterTxEvent(deployId);
-						eh.disconnect();
-						if (code !== 'VALID') {
-							console.log('The chaincode instantiate transaction was invalid, code = ',code);
-						
-							reject();
-						} else {
-							console.log('The chaincode instantiate transaction was valid.');
-							resolve();
+				eh.registerTxEvent(deployId, (tx, code) => {
+					console.log('The chaincode instantiate transaction has been committed on peer ',eh._ep._endpoint.addr);
+					clearTimeout(handle);
+					eh.unregisterTxEvent(deployId);
+					eh.disconnect();
+					if (code !== 'VALID') {
+						console.log('The chaincode instantiate transaction was invalid, code = ',code);
 					
-						}
-					});
-				});
+						reject();
+					} else {
+						console.log('The chaincode instantiate transaction was valid.');
+						resolve();
 				
-				var sendPromise = channel.sendTransaction(request);
-				return Promise.all([sendPromise].concat([txPromise])).then((results) => {
-					
-					console.log('Event promise all complete and testing complete');
-					return results[0]; 
-				
-				}).catch((err) => {
-					console.log('Failed to send instantiate transaction and get notifications within the timeout period: ' ,err);
-					return 'Failed to send instantiate transaction and get notifications within the timeout period.';
+					}
 				});
+			});
+			//sends the obtained respose from peers to orderer for ordering
+			var sendPromise = channel.sendTransaction(request);
+			return Promise.all([sendPromise].concat([txPromise])).then((results) => {
+				
+				console.log('Event promise all complete and testing complete');
+				return results[0]; 
+			
+			}).catch((err) => {
+				console.log('Failed to send instantiate transaction and get notifications within the timeout period: ' ,err);
+				return 'Failed to send instantiate transaction and get notifications within the timeout period.';
+			});
 		
 		} else {
 		
@@ -584,6 +601,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 		
 	}).then((response) => {
 	
+		//gets the response from the orderer and verifies the response status
 		if (response.status === 'SUCCESS') {
 		
 			console.log('Successfully sent transaction to the orderer.');
@@ -599,28 +617,25 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 }
 
 function installchaincode(peers,orgPath,orgmspid,chaincodepath,chaincodeid,chaincodeversion){
-	
-	var targets = [];
 
+	var targets = [];
 	for (var i=0;i<peers.length;i++) {
 		
-			let peer = peers[i];
-			data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+		let peer = peers[i];
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+	
+		let peer_obj = client.newPeer(
+							peer.url,
+							{
+								pem: Buffer.from(data).toString(),
+								'ssl-target-name-override': "peer"+i+"."+orgPath+".example.com"
+							}
+						);
 		
-			let peer_obj = client.newPeer(
-								peer.url,
-								{
-									pem: Buffer.from(data).toString(),
-									'ssl-target-name-override': "peer"+i+"."+orgPath+".example.com"
-								}
-							);
-			
-			targets.push(peer_obj);
+		targets.push(peer_obj);
 	}
 	Client.newDefaultKeyValueStore({
-		
 		path: "/hfc-test-kvs/"+orgmspid
-		
 	}).then((store) => {
 	
 		console.log("\nRegistering "+orgPath+" admin")
@@ -630,29 +645,25 @@ function installchaincode(peers,orgPath,orgmspid,chaincodepath,chaincodeid,chain
 	}).then((admin) => {
 		
 		console.log('\nSuccessfully enrolled '+orgPath+' \'admin\'');
-		
 		// send proposal to endorser
 		console.log("\nBuilding the request object")
-		
+		//building the request for installing chaincode on the peers
+		//specify chaincode path, chaincode id, chaincode version and peers you want to install chaincode
 		var request = {
 			targets: targets,
 			chaincodePath: chaincodepath,
 			chaincodeId: chaincodeid,
 			chaincodeVersion: chaincodeversion
 		};
-		
 		console.log("\nSending the install chaincode request to peers\n")
-		
+		//sends the request to the peers
 		return client.installChaincode(request);
 		
 	},(err) => {
-		
 		console.log('Failed to enroll user \'admin\'. ' + err);
-	
-
 	}).then((results) => {
 		
-		
+		//gets response of peers and check the response status
 		var proposalResponses = results[0];
 		var proposal = results[1];
 		var all_good = true;
@@ -856,29 +867,24 @@ function getChannelInfo(){
 	data = fs.readFileSync("../crypto-config/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/msp/tlscacerts/tlsca.org2.example.com-cert.pem");
 	var channel = client.newChannel(channel_name);
 	var peer = client.newPeer(
-							"grpcs://localhost:10051",
-							{
-								pem: Buffer.from(data).toString(),
-								'ssl-target-name-override': "peer1.org2.example.com"
-							}
-	);
+					"grpcs://localhost:10051",
+					{
+						pem: Buffer.from(data).toString(),
+						'ssl-target-name-override': "peer1.org2.example.com"
+					}
+				);
 	Client.newDefaultKeyValueStore({
-		
 		path: "/hfc-test-kvs/"+org2
-		
 	}).then((store) => {
 	
 		console.log("\nRegistering orderer admin")
 		client.setStateStore(store);
-		
 		return getSubmitter(client, true, "org2",org2)
 		
 	}).then((admin) => {
 	
 		console.log('\nSuccessfully enrolled org1 \'admin\'');
-
 		console.log('\Getting the channel info block from orderer');
-		
 		return channel.queryInfo(peer)
 		
 	}).then((info) =>{
@@ -886,94 +892,93 @@ function getChannelInfo(){
 		console.log('\Channel info: ',info);
 	
 	});
-	
-					
-	
-
 }
 
 function createChannel(channel_name,org1mspid,org1dir){
 
-
+	//return instance of the KeyValueStore which is used to store to save sensitive information such as authenticated user's private keys, certificates, etc.
+	Client.newDefaultKeyValueStore({
+			path: "/hfc-test-kvs/"+org1mspid
+	}).then((store) => {
+	
+		console.log("\nCreate a storage for Org1 certs");
+		//sets a state store to persist application states so that heavy-weight objects such as the certificate and private keys do not have to be passed in repeatedly
+		client.setStateStore(store);
+		console.log("\nEnrolling Admin for Org1");
+		//returns a user object with signing identities based on the private key and the corresponding x509 certificate.
+		return getAdmin(client, org1dir,org1mspid);
 			
-			Client.newDefaultKeyValueStore({
-					
-					path: "/hfc-test-kvs/"+org1mspid
-					
-			}).then((store) => {
+	}).then((admin) =>{
+		
+		console.log('\nSuccessfully enrolled admin for Org1');
+		console.log('\nread the mychannel.tx file for signing');
+		//read the channel.tx file
+		let envelope_bytes = fs.readFileSync('../channel-artifacts/channel.tx');
 
-					console.log("\nCreate a storage for Org1 certs");
-					client.setStateStore(store);
-					console.log("\nEnrolling Admin for Org1");
-					return getAdmin(client, org1dir,org1mspid);
-					
-			}).then((admin) =>{
-				
-						console.log('\nSuccessfully enrolled admin for Org1');
-
-						console.log('\nread the mychannel.tx file for signing');
-						
-						let envelope_bytes = fs.readFileSync('../channel-artifacts/channel.tx');
-						
-						config = client.extractChannelConfig(envelope_bytes);
-						
-						console.log('\nSigning the channel config');
-						
-						var signature = client.signChannelConfig(config);
-						var string_signature = signature.toBuffer().toString('hex');
-						
-						signatures.push(string_signature);
-						signatures.push(string_signature);
-				
-						// build up the create request
-					
-						let tx_id = client.newTransactionID();
-						
-						var request = {
-							config: config,
-							signatures : signatures,
-							name : channel_name,
-							orderer : orderer,
-							txId  : tx_id
-						};
-						// send create request to orderer
-						return client.createChannel(request);
-					
-			}).then((result) => {
-				
-					console.log('\ncompleted the create channel request');
-					console.log('\nresponse: ',result);
-					console.log('\nSuccessfully created the channel.');
-					
-					if(result.status && result.status === 'SUCCESS') {
-						console.log('\nSuccessfully created the channel...SUCCESS 200');
-					} else {
-						console.log('\nFailed to create the channel. ');
-					}
-				}, (err) => {
-					console.log('\nFailed to create the channel: ' , err);
-					
-			}).then((nothing) => {
-					console.log('\nSuccessfully waited to make sure new channel was created.');
-				}, (err) => {
-					console.log('\nFailed to sleep due to error: ', err);
-					
-			});
+		//the channel.tx file is of type ConfigEnvelope which contains two fields(i.e config and last envelope)
+		//extracts the config field from ConfigEnvelope
+		config = client.extractChannelConfig(envelope_bytes);
+		console.log('\nSigning the channel config');
+		
+		//signs the config object
+		var signature = client.signChannelConfig(config);
+		//encodes the signature in buffer to hex 
+		var string_signature = signature.toBuffer().toString('hex');
+		
+		//adds to the signature array defined above
+		signatures.push(string_signature);
+		signatures.push(string_signature);
+		
+		//generates transaction id
+		let tx_id = client.newTransactionID();
+		
+		// builds the create channel request
+		var request = {
+			config: config,
+			signatures : signatures,
+			name : channel_name,
+			orderer : orderer,
+			txId  : tx_id
+		};
+		// send create request to orderer
+		return client.createChannel(request);
+			
+	}).then((result) => {
+		
+		//gets the response from the orderer and check for the status
+		console.log('\ncompleted the create channel request');
+		console.log('\nresponse: ',result);
+		console.log('\nSuccessfully created the channel.');
+		
+		if(result.status && result.status === 'SUCCESS') {
+			console.log('\nSuccessfully created the channel...SUCCESS 200');
+		} else {
+			console.log('\nFailed to create the channel. ');
+		}
+	}, (err) => {
+		console.log('\nFailed to create the channel: ' , err);
+			
+	}).then((nothing) => {
+		console.log('\nSuccessfully waited to make sure new channel was created.');
+	
+	}, (err) => {
+			console.log('\nFailed to sleep due to error: ', err);
+			
+	});
 
 }
  
 function joinChannel(mspID,orgPath,peers){
 
-
+	//gets the channel object from the client object that we created globally
 	var channel = client.newChannel(channel_name);
+	//sets the orderer to the channel
 	channel.addOrderer(orderer)
 	var targets = [];
 	Client.newDefaultKeyValueStore({
-		
 		path: "/hfc-test-kvs/"+mspID
-		
 	}).then((store) => {
-	
+		
 		console.log("\nRegistering "+orgPath+" admin")
 		client.setStateStore(store);
 		return getAdmin(client,orgPath,mspID);
@@ -982,49 +987,47 @@ function joinChannel(mspID,orgPath,peers){
 	
 		console.log('\nSuccessfully enrolled '+orgPath+' \'admin\'');
 		tx_id = client.newTransactionID();
-		
+		//build a request object for getting the genesis block for the channel from ordering service
 		let request = {
 			txId : 	tx_id
 		};
-		
 		console.log('\nGetting the genesis block from orderer');
-		
+		//request genesis block from ordering service
 		return channel.getGenesisBlock(request);
 		
 	}).then((block) =>{
 	
+		//gets the geneis block
 		console.log('\nSuccessfully got the genesis block');
 		genesis_block = block;		
 		console.log('\nEnrolling org1 admin');
-		
 		return getAdmin(client,orgPath,mspID);
 		
 	}).then((admin) => {
-	
 		console.log('\nSuccessfully enrolled org:' + mspID + ' \'admin\'');
-		
+		//client.newPeer returns a peer object initialized with URL and its tls certificates and stores in a array named target
+		//admin of org can choose which peers to join the channel
 		for (var i=0;i<peers.length;i++) {
-		
+
 			let peer = peers[i];
 			data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
-			targets.push(
-					client.newPeer(
+			targets.push(client.newPeer(
 							peer.url,
 							{
 								pem: Buffer.from(data).toString(),
 								'ssl-target-name-override': "peer"+i+"."+orgPath+".example.com"
 							}
-					)
+						)
 			);
 		}
-		
 		tx_id = client.newTransactionID();
+		//builds the join channel request with genesis block and peers(targets)
 		let request = {
 			targets : targets,
 			block : genesis_block,
 			txId : 	tx_id
 		};
-		
+		//request specified peers to join the channel
 		return channel.joinChannel(request);
 		
 	}, (err) => {
@@ -1033,65 +1036,17 @@ function joinChannel(mspID,orgPath,peers){
 		
 	}).then((results) => {
 	
+		//gets the response from the peers and check response status
 		console.log('\nResponse of one peer: ',results[0]);
-		
 		if(results[0] && results[0].response && results[0].response.status == 200) {
-		
 			console.log('\nPeers successfully joined the channel');
-			
 		} else {
-		
 			console.log(' Failed to join channel');
 		}
 	}, (err) => {
-	
 		console.log('Failed to join channel due to error: ' + err);
-		
 	});
 	
-}
-
-function getOrdererAdmin(client){
-
-	var keyPath = '../crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore';
-	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
-	var certPath = '../crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts';
-	var certPEM = readAllFiles(certPath)[0];
-	
-	return Promise.resolve(client.createUser({
-		
-		username: 'ordererAdmin',
-		mspid: 'OrdererMSP',
-		cryptoContent: {
-			privateKeyPEM: keyPEM.toString(),
-			signedCertPEM: certPEM.toString()
-		}
-	}));
-}
-
-function getSubmitter(client, peerOrgAdmin,org,pathOrg){
-
-		var peerAdmin, userOrg;
-		if (typeof peerOrgAdmin === 'boolean') {
-			peerAdmin = peerOrgAdmin;
-		} else {
-			peerAdmin = false;
-		}
-		if (typeof peerOrgAdmin === 'string') {
-			userOrg = peerOrgAdmin;
-		} else {
-		
-			if (typeof org === 'string') {
-				userOrg = org;
-			} else {
-				userOrg = 'org1';
-			}
-		}
-		if (peerAdmin) {
-			return getAdmin(client,userOrg,pathOrg);
-		} else {
-			return getMember('admin', 'adminpw', client, test, userOrg);
-		}
 }
 
 function getAdmin(client, userOrg,mspID){
@@ -1100,12 +1055,6 @@ function getAdmin(client, userOrg,mspID){
 	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
 	var certPath = '../crypto-config/peerOrganizations/'+userOrg+'.example.com/users/Admin@'+userOrg+'.example.com/msp/signcerts';
 	var certPEM = readAllFiles(certPath)[0];
-	// var cryptoSuite = Client.newCryptoSuite();
-	// if (userOrg) {
-		// cryptoSuite.setCryptoKeyStore(Client.newCryptoKeyStore({path: "/hfc-test-kvs/"+pathOrg}));
-		// client.setCryptoSuite(cryptoSuite);
-	// }
-
 	return Promise.resolve(client.createUser({
 		username: 'peer'+userOrg+'Admin',
 		mspid: mspID,
@@ -1127,11 +1076,12 @@ function readAllFiles(dir) {
 	});
 	return certs;
 }
-function buildChaincodeProposal(client, chaincode_path, version, upgrade, transientMap,chaincodeID){
+function buildChaincodeProposal(client, chaincode_path, version,chaincodeID){
 	
 	var tx_id = client.newTransactionID();
 
-	// send proposal to endorser
+	// build instantiate proposal to send for endorsement
+	//specify the function name , arguments , endorsement-policy etc
 	var request = {
 		chaincodePath: chaincode_path,
 		chaincodeId: chaincodeID,
@@ -1157,11 +1107,6 @@ function buildChaincodeProposal(client, chaincode_path, version, upgrade, transi
 			}
 		}
 	};
-
-	if(upgrade) {
-		// use this call to test the transient map support during chaincode instantiation
-		request.transientMap = transientMap;
-	}
 
 	return request;
 
