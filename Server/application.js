@@ -16,7 +16,7 @@ var org2peersurl = [{url:"grpcs://localhost:9051",eventurl:"grpcs://localhost:90
 var client = new Client();
 
 //get the tls certificate of the orderer organization for tls communication
-var caRootsPath = "/network-setup/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
+var caRootsPath = "../crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
 let data = fs.readFileSync(caRootsPath);
 let caroots = Buffer.from(data).toString();
 
@@ -43,11 +43,11 @@ var orderer = client.newOrderer(
 
 
 //install the chaincode at specified path on the specified peer node
-//installchaincode(org1peersurl,'org1',org1mspid,"github.com/chaincode","mychaincodeid","v0");
-//installchaincode(org2peersurl,'org2',org2mspid,"github.com/chaincode","mychaincodeid","v0");
+//installchaincode(org1peersurl,'org1',org1mspid,"chaincode","mychaincodeid","v0");
+//installchaincode(org2peersurl,'org2',org2mspid,"chaincode","mychaincodeid","v0");
 
 //deploys a chaincode on the peer, on recieving this request peer builds and starts a container for chaincode, on successfull users can invoke or query the chaincode 
-//instantiateChaincode(channel_name,org1peersurl,org2peersurl,'org1',org1mspid,"github.com/chaincode","mychaincodeid","v0");
+//instantiateChaincode(channel_name,org1peersurl,org2peersurl,'org1',org1mspid,"chaincode","mychaincodeid","v0");
 
 //lists all the instantiated chaincodes on the peer(s)
 //getInstantiatedChaincodes(org1peersurl,org1mspid,'org1')
@@ -77,7 +77,7 @@ function querychaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeID,a
 	for (var i=0;i<apeers.length;i++) {
 	
 		let peer = apeers[i];
-		data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
 	
 		let peer_obj = client.newPeer(
 							peer.url,
@@ -92,7 +92,7 @@ function querychaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeID,a
 	for (var i=0;i<zpeers.length;i++) {
 	
 		let peer = zpeers[i];
-		data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+"org2"+".example.com/peers/peer"+i+"."+"org2"+".example.com/msp/tlscacerts/tlsca."+"org2"+".example.com-cert.pem");
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+"org2"+".example.com/peers/peer"+i+"."+"org2"+".example.com/msp/tlscacerts/tlsca."+"org2"+".example.com-cert.pem");
 	
 		let peer_obj = client.newPeer(
 							peer.url,
@@ -123,10 +123,7 @@ function querychaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeID,a
 	}, (err) => {
 
 		console.log('Failed to enroll user admin ',err);
-		if(res!=null){
-		
-			res.send("Failed to enroll user admin")
-		}	
+	
 
 	}).then(() => {
 	
@@ -144,20 +141,14 @@ function querychaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeID,a
 	}, (err) => {
 
 		console.log('Failed to initialize the channel: ',err);
-		if(res!=null){
-		
-			res.send("Failed to initialize the channel")
-		}	
+	
 
 	}).then((response_payloads) =>{
 	
 		if (response_payloads) {
 			
 			console.log(response_payloads[0].toString('utf8'));
-			if(res!=null){
 		
-				res.send(response_payloads[0].toString('utf8'))
-			}	
 		} else {
 			console.log('response_payloads is null');
 		}
@@ -175,7 +166,7 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 	for (var i=0;i<apeers.length;i++) {
 	
 		let peer = apeers[i];
-		data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
 	
 		let peer_obj = client.newPeer(
 							peer.url,
@@ -190,7 +181,7 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 	for (var i=0;i<zpeers.length;i++) {
 	
 		let peer = zpeers[i];
-		data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+"org2"+".example.com/peers/peer"+i+"."+"org2"+".example.com/msp/tlscacerts/tlsca."+"org2"+".example.com-cert.pem");
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+"org2"+".example.com/peers/peer"+i+"."+"org2"+".example.com/msp/tlscacerts/tlsca."+"org2"+".example.com-cert.pem");
 	
 		let peer_obj = client.newPeer(
 							peer.url,
@@ -219,9 +210,7 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 	}, (err) => {
 
 		console.log('Failed to enroll user admin ',err);
-		if(res!=null){
-			res.send("Error: "+err)
-		}
+	
 
 	}).then(() => {
 	
@@ -239,9 +228,7 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 	}, (err) => {
 
 		console.log('Failed to initialize the channel: ',err);
-		if(res!=null){
-			res.send("Error: "+err)
-		}
+	
 
 	}).then((results) =>{
 	
@@ -285,7 +272,7 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 			};
 			var deployId = tx_id.getTransactionID();
 			eh = client.newEventHub();
-			let data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer0."+orgPath+".example.com/tls/ca.crt");
+			let data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer0."+orgPath+".example.com/tls/ca.crt");
 			eh.setPeerAddr(apeers[0].eventurl, {
 					pem: Buffer.from(data).toString(),
 					'ssl-target-name-override': 'peer0.'+orgPath+'.example.com'
@@ -330,25 +317,15 @@ function invokechaincode(channel_name,orgName,orgPath,apeers,zpeers,chaincodeId,
 
 		if (response.status === 'SUCCESS') {
 			console.log('Successfully sent transaction to the orderer.');
-			if(res!=null){
-			
-				res.send("Successfully executed transaction")
-			}
+		
 		} else {
 			console.log('Failed to order the transaction. Error code: ',err);
-			if(res!=null){
-			
-				res.send("Error: "+err)
-			}
-			
+
 		}
 	}, (err) => {
 
 		console.log('Failed to send transaction due to error: ',err);
-		if(res!=null){
-			
-			res.send("Error: "+err)
-		}
+
 		
 	});
 	
@@ -360,7 +337,7 @@ function getallChannels(peers,orgmspid,orgPath){
 	for (var i=0;i<peers.length;i++) {
 	
 		let peer = peers[i];
-		data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
 	
 		let peer_obj = client.newPeer(
 							peer.url,
@@ -399,6 +376,7 @@ function getallChannels(peers,orgmspid,orgPath){
 
 function getInstantiatedChaincodes(peers,orgName,orgPath){
 
+	Client.setConfigSetting('request-timeout', 100000);
 	var client = new Client();
 	var targets = [];
 	var channel = client.newChannel(channel_name);
@@ -406,7 +384,7 @@ function getInstantiatedChaincodes(peers,orgName,orgPath){
 	for (var i=0;i<peers.length;i++) {
 	
 		let peer = peers[i];
-		data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
 	
 		let peer_obj = client.newPeer(
 							peer.url,
@@ -448,7 +426,7 @@ function getInstantiatedChaincodes(peers,orgName,orgPath){
 }
 
 
-function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincodePath,chaincodeID,chaincodeVersion,res){
+function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincodePath,chaincodeID,chaincodeVersion){
 
 	Client.setConfigSetting('request-timeout', 10000);
 	var type = 'instantiate';
@@ -459,7 +437,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 	for (var i=0;i<peers.length;i++) {
 	
 		let peer = peers[i];
-		data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
 	
 		let peer_obj = client.newPeer(
 							peer.url,
@@ -476,7 +454,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 	for (var i=0;i<bpeers.length;i++) {
 	
 		let peer = bpeers[i];
-		data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+"org2"+".example.com/peers/peer"+i+"."+"org2"+".example.com/msp/tlscacerts/tlsca."+"org2"+".example.com-cert.pem");
+		data = fs.readFileSync("../crypto-config/peerOrganizations/"+"org2"+".example.com/peers/peer"+i+"."+"org2"+".example.com/msp/tlscacerts/tlsca."+"org2"+".example.com-cert.pem");
 	
 		let peer_obj = client.newPeer(
 							peer.url,
@@ -508,9 +486,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 	}, (err) => {
 
 		console.log('Failed to enroll user admin ',err);
-		if(res!=null){
-			res.send("Error: "+err)
-		}
+	
 		
 
 	}).then(() => {
@@ -524,9 +500,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 	}, (err) => {
 
 		console.log('Failed to initialize the channel: ',err);
-		if(res!=null){
-			res.send("Error: "+err)
-		}
+	
 		
 	}).then((results) => {
 		
@@ -557,7 +531,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 				var deployId = tx_id.getTransactionID();
 				
 				eh = client.newEventHub();
-				let data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer0."+orgPath+".example.com/tls/ca.crt");
+				let data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer0."+orgPath+".example.com/tls/ca.crt");
 				eh.setPeerAddr(peers[0].eventurl, {
 					pem: Buffer.from(data).toString(),
 					'ssl-target-name-override': 'peer0.'+orgPath+'.example.com'
@@ -577,16 +551,12 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 						eh.disconnect();
 						if (code !== 'VALID') {
 							console.log('The chaincode instantiate transaction was invalid, code = ',code);
-							if(res!=null){
-								res.send("The chaincode instantiate transaction was invalid")
-							}
+						
 							reject();
 						} else {
 							console.log('The chaincode instantiate transaction was valid.');
 							resolve();
-							if(res!=null){
-								res.send("The chaincode instantiate transaction was valid")
-							}
+					
 						}
 					});
 				});
@@ -610,9 +580,7 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 	},(err) => {
 	
 		console.log('Failed to send instantiate proposal due to error: ',err);
-		if(res!=null){
-			res.send("Error: "+err)
-		}
+	
 		
 	}).then((response) => {
 	
@@ -622,15 +590,11 @@ function instantiateChaincode(channel_name,peers,bpeers,orgPath,orgName,chaincod
 			
 		} else {
 			console.log('Failed to order the transaction. Error code: ',response);
-			if(res!=null){
-				res.send("Error: "+response)
-			}
+		
 		}
 	}, (err) => {
 		console.log('Failed to send instantiate due to error: ',err);
-		if(res!=null){
-			res.send("Error: "+err)
-		}
+	
 	});
 }
 
@@ -641,7 +605,7 @@ function installchaincode(peers,orgPath,orgmspid,chaincodepath,chaincodeid,chain
 	for (var i=0;i<peers.length;i++) {
 		
 			let peer = peers[i];
-			data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+			data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
 		
 			let peer_obj = client.newPeer(
 								peer.url,
@@ -684,9 +648,7 @@ function installchaincode(peers,orgPath,orgmspid,chaincodepath,chaincodeid,chain
 	},(err) => {
 		
 		console.log('Failed to enroll user \'admin\'. ' + err);
-		if(res!=null){
-			res.send("Error: "+err)
-		}
+	
 
 	}).then((results) => {
 		
@@ -813,7 +775,7 @@ function addOrganizationtoChannel(orgPath,orgName){
 		
 	}).then((admin) => {
 	
-		let config = fs.readFileSync('/network-setup/channel-artifacts/config_update.pb');
+		let config = fs.readFileSync('../channel-artifacts/config_update.pb');
 		//config = client.extractChannelConfig(envelope_bytes);
 		var signature = client.signChannelConfig(config);
 		var string_signature = signature.toBuffer().toString('hex');
@@ -891,7 +853,7 @@ function getGenesisBlock(orgName,orgPath){
 
 function getChannelInfo(){
 
-	data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/msp/tlscacerts/tlsca.org2.example.com-cert.pem");
+	data = fs.readFileSync("../crypto-config/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/msp/tlscacerts/tlsca.org2.example.com-cert.pem");
 	var channel = client.newChannel(channel_name);
 	var peer = client.newPeer(
 							"grpcs://localhost:10051",
@@ -951,7 +913,7 @@ function createChannel(channel_name,org1mspid,org1dir){
 
 						console.log('\nread the mychannel.tx file for signing');
 						
-						let envelope_bytes = fs.readFileSync('/network-setup/channel-artifacts/channel.tx');
+						let envelope_bytes = fs.readFileSync('../channel-artifacts/channel.tx');
 						
 						config = client.extractChannelConfig(envelope_bytes);
 						
@@ -1044,7 +1006,7 @@ function joinChannel(mspID,orgPath,peers){
 		for (var i=0;i<peers.length;i++) {
 		
 			let peer = peers[i];
-			data = fs.readFileSync("/network-setup/crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
+			data = fs.readFileSync("../crypto-config/peerOrganizations/"+orgPath+".example.com/peers/peer"+i+"."+orgPath+".example.com/msp/tlscacerts/tlsca."+orgPath+".example.com-cert.pem");
 			targets.push(
 					client.newPeer(
 							peer.url,
@@ -1091,9 +1053,9 @@ function joinChannel(mspID,orgPath,peers){
 
 function getOrdererAdmin(client){
 
-	var keyPath = '/network-setup/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore';
+	var keyPath = '../crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore';
 	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
-	var certPath = '/network-setup/crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts';
+	var certPath = '../crypto-config/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts';
 	var certPEM = readAllFiles(certPath)[0];
 	
 	return Promise.resolve(client.createUser({
@@ -1134,9 +1096,9 @@ function getSubmitter(client, peerOrgAdmin,org,pathOrg){
 
 function getAdmin(client, userOrg,mspID){
 
-	var keyPath = '/network-setup/crypto-config/peerOrganizations/'+userOrg+'.example.com/users/Admin@'+userOrg+'.example.com/msp/keystore';
+	var keyPath = '../crypto-config/peerOrganizations/'+userOrg+'.example.com/users/Admin@'+userOrg+'.example.com/msp/keystore';
 	var keyPEM = Buffer.from(readAllFiles(keyPath)[0]).toString();
-	var certPath = '/network-setup/crypto-config/peerOrganizations/'+userOrg+'.example.com/users/Admin@'+userOrg+'.example.com/msp/signcerts';
+	var certPath = '../crypto-config/peerOrganizations/'+userOrg+'.example.com/users/Admin@'+userOrg+'.example.com/msp/signcerts';
 	var certPEM = readAllFiles(certPath)[0];
 	// var cryptoSuite = Client.newCryptoSuite();
 	// if (userOrg) {
