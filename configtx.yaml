@@ -24,14 +24,6 @@ Profiles:
                 Organizations:
                     - *Org1
                     - *Org2
-            # SecondConsortium:
-                # Organizations:
-                    # - *Org1
-                    # - *Org3
-            # ThirdConsortium:
-                # Organizations:
-                    # - *Org2
-                    # - *Org3
 
     TwoOrgsChannel:
         Consortium: SampleConsortium
@@ -39,7 +31,7 @@ Profiles:
             <<: *ApplicationDefaults
             Organizations:
                 - *Org1
-                - *Org3
+                - *Org2
 
 ################################################################################
 #
